@@ -21,7 +21,7 @@ body{
   justify-content:center;
   align-items:center;
   gap:10px;
-  font-size:40px;
+  font-size:20px;
 }
 
 .hand{
@@ -50,25 +50,31 @@ body{
 .card:hover{
   transform:translateY(-12px);
 }
+
+.pair{
+  display:flex;
+  gap:5px;
+}
 </style>
 </head>
 
 <body>
 
-<div class="table" id="table">🃏</div>
+<div class="table" id="table"></div>
 <div class="hand" id="hand"></div>
 
 <script>
 const tg = window.Telegram.WebApp;
 tg.expand();
 
-// рука игрока
 let hand = ["6♠","7♥","8♦","9♣","J♠","A♥"];
+let table = [];
 
 const handDiv = document.getElementById("hand");
 const tableDiv = document.getElementById("table");
 
 function render(){
+  // рука
   handDiv.innerHTML="";
   hand.forEach((card,i)=>{
     const el=document.createElement("div");
@@ -77,55 +83,45 @@ function render(){
     el.onclick=()=>play(i);
     handDiv.appendChild(el);
   });
-}
 
-function play(i){
-  const card=hand.splice(i,1)[0];
-  tableDiv.innerText=card;
-  render();
-}
+  // стол
+  tableDiv.innerHTML="";
+  table.forEach(pair=>{
+    const wrap=document.createElement("div");
+    wrap.className="pair";
 
-render();
-<script>
-const tg = window.Telegram.WebApp;
-tg.expand();
+    pair.forEach(c=>{
+      const el=document.createElement("div");
+      el.className="card";
+      el.innerText=c;
+      wrap.appendChild(el);
+    });
 
-let hand = ["6♠","7♥","8♦","9♣","J♠","A♥"];
-let enemy = ["7♠","10♥","Q♦","K♣","A♠","6♥"];
-
-let attackCard = null;
-let defenseMode = false;
-
-const handDiv = document.getElementById("hand");
-const tableDiv = document.getElementById("table");
-
-function render(){
-  handDiv.innerHTML="";
-  hand.forEach((card,i)=>{
-    const el=document.createElement("div");
-    el.className="card";
-    el.innerText=card;
-    el.onclick=()=>play(i);
-    handDiv.appendChild(el);
+    tableDiv.appendChild(wrap);
   });
 }
 
 function play(i){
   const card = hand[i];
 
-  if(!attackCard){
-    attackCard = card;
+  // атака
+  if(table.length===0){
+    table.push([card]);
     hand.splice(i,1);
-    tableDiv.innerText = "Атака: " + card;
-    defenseMode = true;
-  }else if(defenseMode){
-    if(canBeat(card, attackCard)){
-      tableDiv.innerText = "Побито: " + attackCard + " → " + card;
-      hand.splice(i,1);
-      attackCard = null;
-      defenseMode = false;
-    }else{
-      alert("Не бьётся");
+  }
+  else{
+    const last = table[table.length-1];
+
+    // защита
+    if(last.length===1){
+      const attackCard = last[0];
+
+      if(canBeat(card, attackCard)){
+        last.push(card);
+        hand.splice(i,1);
+      }else{
+        alert("Не бьётся");
+      }
     }
   }
 
@@ -133,19 +129,19 @@ function play(i){
 }
 
 function canBeat(def, att){
-  const rank = ["6","7","8","9","10","J","Q","K","A"];
+  const rank=["6","7","8","9","10","J","Q","K","A"];
 
-  const defRank = def.slice(0,-1);
-  const attRank = att.slice(0,-1);
+  const defRank=def.slice(0,-1);
+  const attRank=att.slice(0,-1);
 
-  const defSuit = def.slice(-1);
-  const attSuit = att.slice(-1);
+  const defSuit=def.slice(-1);
+  const attSuit=att.slice(-1);
 
-  if(defSuit === attSuit){
-    return rank.indexOf(defRank) > rank.indexOf(attRank);
+  if(defSuit===attSuit){
+    return rank.indexOf(defRank)>rank.indexOf(attRank);
   }
 
-  if(defSuit === "♠"){ // козырь
+  if(defSuit==="♠"){ // козырь
     return true;
   }
 
@@ -155,7 +151,5 @@ function canBeat(def, att){
 render();
 </script>
 
-
 </body>
 </html>
-
