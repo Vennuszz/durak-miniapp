@@ -62,94 +62,123 @@ body{
 
 <div class="table" id="table"></div>
 <div class="hand" id="hand"></div>
+  <div style="text-align:center; margin: 10px;">
+    <button id="actionBtn" onclick="nextTurn()" style="padding: 10px 20px; border-radius: 10px; border: none; background: #fbbf24; color: black; font-weight: bold; cursor: pointer;">
+        БИТО / ВЗЯТЬ
+    </button>
+</div>
 
 <script>
 const tg = window.Telegram.WebApp;
 tg.expand();
 
-let hand = ["6♠","7♥","8♦","9♣","J♠","A♥"];
-let table = [];
+let deck = []; // Колода
+let hand = []; // Твои карты
+let table = []; // Карты на столе
+let trump = ""; // Козырь
 
-const handDiv = document.getElementById("hand");
-const tableDiv = document.getElementById("table");
+// Масти и ранги
+const suits = ["♠", "♥", "♦", "♣"];
+const ranks = ["6", "7", "8", "9", "10", "J", "Q", "K", "A"];
 
-function render(){
-  // рука
-  handDiv.innerHTML="";
-  hand.forEach((card,i)=>{
-    const el=document.createElement("div");
-    el.className="card";
-    el.innerText=card;
-    el.onclick=()=>play(i);
-    handDiv.appendChild(el);
-  });
+// 1. Функция создания колоды
+function createDeck() {
+    let newDeck = [];
+    for (let s of suits) {
+        for (let r of ranks) {
+            newDeck.push(r + s);
+        }
+    }
+    // Перемешиваем
+    return newDeck.sort(() => Math.random() - 0.5);
+}
 
-  // стол
-  tableDiv.innerHTML="";
-  table.forEach(pair=>{
-    const wrap=document.createElement("div");
-    wrap.className="pair";
+// 2. Старт игры
+function startGame() {
+    deck = createDeck();
+    trump = deck[0].slice(-1); // Берем козырь из колоды
+    drawCards();
+    render();
+    alert("Козырь на эту игру: " + trump);
+}
 
-    pair.forEach(c=>{
-      const el=document.createElement("div");
-      el.className="card";
-      el.innerText=c;
-      wrap.appendChild(el);
+// 3. Добор карт до 6 штук
+function drawCards() {
+    while (hand.length < 6 && deck.length > 0) {
+        hand.push(deck.pop());
+    }
+}
+
+// 4. Кнопка "БИТО"
+function nextTurn() {
+    table = []; // Очищаем стол
+    drawCards(); // Добираем карты
+    render(); // Обновляем экран
+}
+
+// 5. Логика боя (кто сильнее)
+function canBeat(card, target) {
+    const cardRank = card.slice(0, -1);
+    const targetRank = target.slice(0, -1);
+    const cardSuit = card.slice(-1);
+    const targetSuit = target.slice(-1);
+
+    if (cardSuit === targetSuit) {
+        return ranks.indexOf(cardRank) > ranks.indexOf(targetRank);
+    }
+    return cardSuit === trump; // Бьем козырем, если масти разные
+}
+
+// Функция хода (нажать на карту)
+function play(i) {
+    const card = hand[i];
+    
+    if (table.length === 0) {
+        table.push([card]);
+        hand.splice(i, 1);
+    } else {
+        let lastPair = table[table.length - 1];
+        if (lastPair.length === 1 && canBeat(card, lastPair[0])) {
+            lastPair.push(card);
+            hand.splice(i, 1);
+        }
+    }
+    render();
+}
+
+// Отрисовка всего на экране
+function render() {
+    const handDiv = document.getElementById("hand");
+    const tableDiv = document.getElementById("table");
+
+    handDiv.innerHTML = "";
+    hand.forEach((card, i) => {
+        const el = document.createElement("div");
+        el.className = "card";
+        el.innerText = card;
+        if (card.includes("♥") || card.includes("♦")) el.style.color = "red";
+        el.onclick = () => play(i);
+        handDiv.appendChild(el);
     });
 
-    tableDiv.appendChild(wrap);
-  });
+    tableDiv.innerHTML = "";
+    table.forEach(pair => {
+        const wrap = document.createElement("div");
+        wrap.className = "pair";
+        pair.forEach(c => {
+            const el = document.createElement("div");
+            el.className = "card";
+            el.innerText = c;
+            if (c.includes("♥") || c.includes("♦")) el.style.color = "red";
+            wrap.appendChild(el);
+        });
+        tableDiv.appendChild(wrap);
+    });
 }
 
-function play(i){
-  const card = hand[i];
-
-  // атака
-  if(table.length===0){
-    table.push([card]);
-    hand.splice(i,1);
-  }
-  else{
-    const last = table[table.length-1];
-
-    // защита
-    if(last.length===1){
-      const attackCard = last[0];
-
-      if(canBeat(card, attackCard)){
-        last.push(card);
-        hand.splice(i,1);
-      }else{
-        alert("Не бьётся");
-      }
-    }
-  }
-
-  render();
-}
-
-function canBeat(def, att){
-  const rank=["6","7","8","9","10","J","Q","K","A"];
-
-  const defRank=def.slice(0,-1);
-  const attRank=att.slice(0,-1);
-
-  const defSuit=def.slice(-1);
-  const attSuit=att.slice(-1);
-
-  if(defSuit===attSuit){
-    return rank.indexOf(defRank)>rank.indexOf(attRank);
-  }
-
-  if(defSuit==="♠"){ // козырь
-    return true;
-  }
-
-  return false;
-}
-
-render();
+startGame(); // Запускаем всё!
 </script>
 
 </body>
 </html>
+
